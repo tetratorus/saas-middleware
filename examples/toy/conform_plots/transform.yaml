@@ -1,0 +1,11 @@
+id: example.conform_plots
+version: 0.1.0
+kind: conformer
+title: Toy conformer - CSV plots to silver plots + zoning
+upstream: {repo: tetratorus/sg-urban-spine, license: MIT}
+runtime: {type: python, entrypoint: "adapter:run"}
+inputs:
+  - {name: raw, source: "bronze:toy_plots"}
+outputs:
+  - {name: plots}
+  - {name: zoning}

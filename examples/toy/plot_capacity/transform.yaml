@@ -1,0 +1,24 @@
+id: example.plot_capacity
+version: 0.1.0
+kind: transform
+title: Toy transform - allowable GFA = plot area x gross plot ratio
+upstream: {repo: tetratorus/sg-urban-spine, license: MIT}
+runtime: {type: python, entrypoint: "adapter:run"}
+inputs:
+  - {name: plots, source: "silver:plots", columns: [plot_id, area_m2]}
+  - {name: zoning, source: "silver:zoning", columns: [plot_id, gross_plot_ratio]}
+parameters:
+  type: object
+  properties:
+    efficiency: {type: number, default: 1.0, minimum: 0, maximum: 1}
+outputs:
+  - name: plot_capacity
+    key: [plot_id]
+    columns:
+      - {name: plot_id, type: string}
+      - {name: gfa_m2, type: float, unit: m2}
+golden:
+  - name: basic
+    path: golden/basic
+    tolerance: {rtol: 1.0e-9}
+    reference: hand-computed

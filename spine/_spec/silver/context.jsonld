@@ -1,0 +1,20 @@
+{
+  "@context": {
+    "@vocab": "https://github.com/tetratorus/sg-urban-spine/spec/silver#",
+    "plot_id": "@id",
+    "ontoplot": "https://www.theworldavatar.com/kg/ontoplot/",
+    "ontozoning": "https://www.theworldavatar.com/kg/ontozoning/",
+    "ontobuiltenv": "https://www.theworldavatar.com/kg/ontobuiltenv/",
+    "opr": "https://www.theworldavatar.com/kg/ontoplanningregulation/",
+    "area_m2": "ontoplot:hasPlotArea",
+    "zone_type": "ontozoning:hasZone",
+    "gross_plot_ratio": "opr:hasMaximumPlotRatio",
+    "max_storeys": "opr:allowsStoreyAggregate",
+    "site_coverage": "opr:hasMaximumSiteCoverage",
+    "setback_m": "opr:hasSetback",
+    "height_m": "ontobuiltenv:hasHeight",
+    "storeys": "ontobuiltenv:hasNumberOfFloors",
+    "use_type": "ontobuiltenv:hasPropertyUsage"
+  },
+  "_note": "Provisional mapping; the TWA ontology PR owns and validates these IRIs."
+}
