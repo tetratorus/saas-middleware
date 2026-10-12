@@ -66,7 +66,7 @@ source tree and runs it there.
 - Not exercised end-to-end through a running RTI node + DOR (the RTI clones processors from a git remote). What was
   run by hand: the MVA export above, moved to another directory, `install.sh default` (fresh Python 3.10 venv, real
   pip installs incl. `saas` 0.6.11 from `ucm-mva/requirements.txt`) and `execute.sh default <wd>` on the
-  duct.mva_wind_corridor `tanjong_pagar` golden inputs: exit 0, output equal to the frozen golden (1,332 cells).
+  duct.mva_wind_corridor `tanjong_pagar` golden inputs: exit 0, output equal to the frozen golden (1,056 cells, re-run against duct-fom 40f9375).
   The pytest suite runs `processor.py` with the test interpreter, not `install.sh`'s venv (needs network).
 - Spine `subprocess`/`docker`/`cwl` runtimes are passed through `spine.transform.invoke`, so their own tooling
   (docker, cwltool) must exist on the RTI host.
