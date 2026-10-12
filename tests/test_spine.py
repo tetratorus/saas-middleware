@@ -175,3 +175,18 @@ def test_dagster_assets_materialize(lake):
     assets = [a for a in defs.assets if not isinstance(a, AssetSpec)]
     res = materialize(assets, selection=["silver/plots", "silver/zoning", "gold/example/plot_capacity/plot_capacity"])
     assert res.success
+
+
+@pytest.mark.skipif(not __import__("os").environ.get("LAKEFS_HOST"), reason="needs a lakeFS server")
+def test_lakefs_scenario_branch(lake):
+    import lakefs
+    from spine.lakefs_sync import _client, publish
+    execute(lake, load_descriptor(TOY / "plot_capacity"))
+    base = publish(lake)
+    lake.scenario_create("rezone_p1")
+    lake.scenario_set("rezone_p1", "zoning", pd.DataFrame([{"plot_id": "P1", "gross_plot_ratio": 3.5}]))
+    execute(lake, load_descriptor(TOY / "plot_capacity"), scenario="rezone_p1")
+    alt = publish(lake, "rezone_p1")
+    assert base != alt
+    br = lakefs.Repository("sg-urban-spine", client=_client()).branch("scenario-rezone_p1")
+    assert any("gold/rezone_p1/example.plot_capacity" in o.path for o in br.objects())

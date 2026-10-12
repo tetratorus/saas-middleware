@@ -26,7 +26,11 @@ spine scenario set rezone_p1 --table zoning --rows '[{"plot_id":"P1","gross_plot
 spine run example.plot_capacity --scenario rezone_p1  # same model, branched data
 spine test                                            # golden tests
 spine serve                                           # http://127.0.0.1:8090/collections
+dagster dev -m spine.dagster_defs                     # asset graph UI (needs SPINE_PATH)
 ```
+
+## Production precedents
+See [spec/LAYERS.md](spec/LAYERS.md) for the full table. Pattern = operational model shell (Delft-FEWS/NWS CHPS, NOAA NextGen, ESA EOEPCA).
 
 ## Concepts borrowed (production-tested)
 Databricks medallion (Bronze/Silver/Gold) · Data Vault 2.0 hubs/satellites · GeoParquet + SVY21 · OGC API Processes / Application Packages · lakeFS / Project Nessie branches · OpenLineage · Delta Live Tables expectations · OGC API Features.

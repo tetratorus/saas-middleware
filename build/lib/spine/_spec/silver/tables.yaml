@@ -1,0 +1,98 @@
+# Silver: the canonical city model of Singapore. Slow layer (changes with standards, ~years).
+# Hubs (Data Vault): plot_id, building_id, district_id, road_id, station_id — stable identity.
+# Every row is a satellite record: attributes + source_version (which Bronze produced it).
+# Geometry: CRS EPSG:3414 (SVY21 / Singapore TM). Storage: GeoParquet.
+# iri: meaning of the column in The World Avatar ontologies (see context.jsonld).
+crs: "EPSG:3414"
+tables:
+  plots:
+    key: [plot_id]
+    iri: "https://www.theworldavatar.com/kg/ontoplot/Plot"
+    columns:
+      plot_id: {type: string, required: true}
+      geometry: {type: geometry, required: true}
+      area_m2: {type: float, unit: m2}
+      source_version: {type: string, required: true}
+  zoning:
+    key: [plot_id]
+    iri: "https://www.theworldavatar.com/kg/ontozoning/Zone"
+    columns:
+      plot_id: {type: string, required: true}
+      zone_type: {type: string, required: true, description: "Master Plan land use, e.g. RESIDENTIAL, COMMERCIAL, BUSINESS 1"}
+      gross_plot_ratio: {type: float, description: "Master Plan GPR; null = not specified (e.g. EVA)"}
+      source_version: {type: string, required: true, description: "e.g. MP2019"}
+  regulations:
+    key: [plot_id]
+    iri: "https://www.theworldavatar.com/kg/ontoplanningregulation/PlanningRegulation"
+    columns:
+      plot_id: {type: string, required: true}
+      max_storeys: {type: int}
+      max_height_m: {type: float, unit: m}
+      site_coverage: {type: float, description: "max fraction of plot that may be built on (0-1)"}
+      setback_m: {type: float, unit: m}
+      source_version: {type: string, required: true}
+  buildings:
+    key: [building_id]
+    iri: "https://www.theworldavatar.com/kg/ontobuiltenv/Building"
+    columns:
+      building_id: {type: string, required: true}
+      plot_id: {type: string, description: "link to plots hub (nullable)"}
+      district_id: {type: string, description: "link to districts hub (nullable)"}
+      geometry: {type: geometry, required: true, description: "footprint"}
+      height_m: {type: float, unit: m}
+      storeys: {type: int}
+      use_type: {type: string, description: "RESIDENTIAL | OFFICE | RETAIL | INDUSTRIAL | HOTEL | SCHOOL | HOSPITAL | OTHER"}
+      year_built: {type: int}
+      source_version: {type: string, required: true}
+  districts:
+    key: [district_id]
+    iri: "https://www.theworldavatar.com/kg/ontobuiltenv/District"
+    columns:
+      district_id: {type: string, required: true}
+      name: {type: string}
+      geometry: {type: geometry, required: true}
+      source_version: {type: string, required: true}
+  land_cover:
+    key: [cell_id]
+    columns:
+      cell_id: {type: string, required: true}
+      district_id: {type: string}
+      geometry: {type: geometry, required: true}
+      lcz: {type: int, description: "Local Climate Zone 1-17 (Stewart & Oke)"}
+      tree_cover: {type: float, description: "fraction 0-1"}
+      grass_cover: {type: float, description: "fraction 0-1"}
+      source_version: {type: string, required: true}
+  roads:
+    key: [road_id]
+    columns:
+      road_id: {type: string, required: true}
+      geometry: {type: geometry, required: true}
+      road_class: {type: string}
+      name: {type: string}
+      source_version: {type: string, required: true}
+  weather_hourly:
+    key: [station_id, timestamp]
+    columns:
+      station_id: {type: string, required: true}
+      timestamp: {type: timestamp, required: true, description: "UTC"}
+      dry_bulb_c: {type: float, unit: degC, required: true}
+      dew_point_c: {type: float, unit: degC}
+      rh_pct: {type: float, unit: "%"}
+      pressure_pa: {type: float, unit: Pa}
+      wind_speed_ms: {type: float, unit: m/s}
+      wind_dir_deg: {type: float, unit: deg}
+      ghi_wm2: {type: float, unit: W/m2}
+      dni_wm2: {type: float, unit: W/m2}
+      dhi_wm2: {type: float, unit: W/m2}
+      source_version: {type: string, required: true}
+  id_bridge:
+    description: "GERS-style bridge (Overture Maps): maps every source system's own IDs onto spine hub IDs, so models from different repos join on one key."
+    key: [source, source_id]
+    columns:
+      source: {type: string, doc: "e.g. ura_mp2019, duct_bdp, twa_kg, osm, cea_zone"}
+      source_id: {type: string}
+      hub: {type: string, doc: "plot | building | district | road | station"}
+      hub_id: {type: string}
+      match_method: {type: string, doc: "exact | spatial_overlap | manual"}
+      confidence: {type: float, nullable: true}
+      source_version: {type: string}
