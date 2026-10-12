@@ -4,69 +4,191 @@
   "title": "Transform descriptor (transform.yaml)",
   "description": "One contract for every model, conformer and workflow step. Modelled on OGC API Processes / OGC Application Packages: a process with typed inputs, outputs and parameters, plus a runtime that can execute it.",
   "type": "object",
-  "required": ["id", "version", "kind", "title", "upstream", "runtime", "inputs", "outputs"],
+  "required": [
+    "id",
+    "version",
+    "kind",
+    "title",
+    "upstream",
+    "runtime",
+    "inputs",
+    "outputs"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": {"type": "string", "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$", "description": "Namespaced id, e.g. uwg.urban_heat"},
-    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+"},
-    "kind": {"enum": ["conformer", "transform"], "description": "conformer: bronze -> silver. transform: silver/gold -> gold."},
-    "title": {"type": "string"},
-    "description": {"type": "string"},
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)+$",
+      "description": "Namespaced id, e.g. uwg.urban_heat"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+"
+    },
+    "kind": {
+      "enum": [
+        "conformer",
+        "transform"
+      ],
+      "description": "conformer: bronze -> silver. transform: silver/gold -> gold."
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
     "upstream": {
       "type": "object",
-      "required": ["repo", "license"],
+      "required": [
+        "repo",
+        "license"
+      ],
       "properties": {
-        "repo": {"type": "string"},
-        "license": {"type": "string"},
-        "commercial_use": {"enum": ["allowed", "restricted", "review"], "default": "allowed"},
-        "notes": {"type": "string"}
+        "repo": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "commercial_use": {
+          "enum": [
+            "allowed",
+            "restricted",
+            "review"
+          ],
+          "default": "allowed"
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
     "runtime": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": {"enum": ["python", "subprocess", "docker", "external"]},
-        "entrypoint": {"type": "string", "description": "python: 'module.path:function' called as fn(inputs: dict[str, DataFrame], params: dict) -> dict[str, DataFrame]"},
-        "command": {"type": "array", "items": {"type": "string"}, "description": "subprocess/docker: argv; placeholders {inputs} {outputs} {params} are replaced with absolute paths"},
-        "image": {"type": "string", "description": "docker image"},
-        "workdir": {"type": "string", "description": "subprocess cwd, relative to the descriptor's directory"},
-        "notes": {"type": "string", "description": "external: how to run it (HPC queue, licence server, ...)"}
+        "type": {
+          "enum": [
+            "python",
+            "subprocess",
+            "docker",
+            "cwl",
+            "external"
+          ]
+        },
+        "entrypoint": {
+          "type": "string",
+          "description": "python: 'module.path:function' called as fn(inputs: dict[str, DataFrame], params: dict) -> dict[str, DataFrame]"
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "subprocess/docker: argv; placeholders {inputs} {outputs} {params} are replaced with absolute paths"
+        },
+        "image": {
+          "type": "string",
+          "description": "docker image"
+        },
+        "workdir": {
+          "type": "string",
+          "description": "subprocess cwd, relative to the descriptor's directory"
+        },
+        "notes": {
+          "type": "string",
+          "description": "external: how to run it (HPC queue, licence server, ...)"
+        },
+        "cwl": {
+          "type": "string",
+          "description": "Path (relative to descriptor) to an OGC EO Application Package CWL file (OGC BP 20-089). Run with cwltool locally, or Calrissian/ZOO-Project in EOEPCA-style deployments."
+        }
       }
     },
     "inputs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "source"],
+        "required": [
+          "name",
+          "source"
+        ],
         "properties": {
-          "name": {"type": "string"},
-          "source": {"type": "string", "pattern": "^(bronze:[a-z0-9_]+(/[A-Za-z0-9_.-]+)?|silver:[a-z0-9_]+|gold:[a-z0-9_.]+/[a-z0-9_]+)$", "description": "bronze:<source>[/<version>] | silver:<table> | gold:<transform_id>/<table>"},
-          "columns": {"type": "array", "items": {"type": "string"}},
-          "optional": {"type": "boolean", "default": false}
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(bronze:[a-z0-9_]+(/[A-Za-z0-9_.-]+)?|silver:[a-z0-9_]+|gold:[a-z0-9_.]+/[a-z0-9_]+)$",
+            "description": "bronze:<source>[/<version>] | silver:<table> | gold:<transform_id>/<table>"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "optional": {
+            "type": "boolean",
+            "default": false
+          }
         }
       }
     },
-    "parameters": {"type": "object", "description": "JSON Schema for parameters"},
+    "parameters": {
+      "type": "object",
+      "description": "JSON Schema for parameters"
+    },
     "outputs": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
-          "name": {"type": "string", "description": "conformer: silver table name. transform: gold table name"},
-          "key": {"type": "array", "items": {"type": "string"}},
+          "name": {
+            "type": "string",
+            "description": "conformer: silver table name. transform: gold table name"
+          },
+          "key": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "columns": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["name", "type"],
+              "required": [
+                "name",
+                "type"
+              ],
               "properties": {
-                "name": {"type": "string"},
-                "type": {"enum": ["string", "int", "float", "bool", "timestamp", "geometry"]},
-                "unit": {"type": "string"},
-                "description": {"type": "string"}
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "string",
+                    "int",
+                    "float",
+                    "bool",
+                    "timestamp",
+                    "geometry"
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -77,19 +199,74 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "path"],
+        "required": [
+          "name",
+          "path"
+        ],
         "properties": {
-          "name": {"type": "string"},
-          "path": {"type": "string", "description": "dir relative to descriptor: inputs/<input>.parquet, params.json, expected/<output>.parquet"},
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "dir relative to descriptor: inputs/<input>.parquet, params.json, expected/<output>.parquet"
+          },
           "tolerance": {
             "type": "object",
             "properties": {
-              "rtol": {"type": "number"},
-              "atol": {"type": "number"},
-              "columns": {"type": "object", "additionalProperties": {"type": "object", "properties": {"rtol": {"type": "number"}, "atol": {"type": "number"}}}}
+              "rtol": {
+                "type": "number"
+              },
+              "atol": {
+                "type": "number"
+              },
+              "columns": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "rtol": {
+                      "type": "number"
+                    },
+                    "atol": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
             }
           },
-          "reference": {"type": "string", "description": "where the expected values come from (e.g. 'upstream MATLAB reference, tests/matlab_ref')"}
+          "reference": {
+            "type": "string",
+            "description": "where the expected values come from (e.g. 'upstream MATLAB reference, tests/matlab_ref')"
+          }
+        }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "description": "NOAA Readiness Level (NAO 216-105B / ORTA RL1-9) for research->operations transition.",
+      "required": [
+        "level",
+        "evidence"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

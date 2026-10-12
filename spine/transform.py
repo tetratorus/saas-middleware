@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime as dt
 import importlib
 import json
+import shutil
 import os
 import subprocess
 import sys
@@ -27,7 +28,7 @@ import yaml
 from .lake import BASELINE, Lake, read_table, sha256_file, write_table
 from .lineage import run_event
 from .spec import transform_schema
-from .validate import check_gold, check_silver
+from .validate import ExpectationError, check_gold, check_silver
 
 
 class NotRunnable(RuntimeError):
@@ -70,7 +71,7 @@ def load_descriptor(path: os.PathLike | str) -> Descriptor:
         if bad:
             raise jsonschema.ValidationError(f"{data['id']}: transforms read silver/gold, never bronze: {bad}")
     rt = data["runtime"]
-    need = {"python": "entrypoint", "subprocess": "command", "docker": "image"}.get(rt["type"])
+    need = {"python": "entrypoint", "subprocess": "command", "docker": "image", "cwl": "cwl"}.get(rt["type"])
     if need and need not in rt:
         raise jsonschema.ValidationError(f"{data['id']}: runtime '{rt['type']}' requires '{need}'")
     return Descriptor(data, p)
@@ -141,7 +142,12 @@ def _invoke_dir_contract(desc: Descriptor, inputs: dict[str, Any], params: dict)
             elif val is not None:
                 write_table(val, idir / f"{name}.parquet")
         pfile.write_text(json.dumps(params, default=str))
-        if rt["type"] == "subprocess":
+        if rt["type"] == "cwl":
+            job = {"inputs": {"class": "Directory", "path": str(idir)}, "params": {"class": "File", "path": str(pfile)}}
+            jfile = Path(tmp) / "job.json"
+            jfile.write_text(json.dumps(job))
+            argv = ["cwltool", "--outdir", str(odir), str(desc.dir / rt["cwl"]), str(jfile)]
+        elif rt["type"] == "subprocess":
             subst = {"{inputs}": str(idir), "{outputs}": str(odir), "{params}": str(pfile)}
             argv = [sys.executable if a == "python" else _subst(a, subst) for a in rt["command"]]
             cwd = (desc.dir / rt.get("workdir", ".")).resolve()
@@ -220,13 +226,31 @@ def execute(lake: Lake, desc: Descriptor, *, scenario: str = BASELINE, params: O
         ldir.mkdir(parents=True, exist_ok=True)
         (ldir / f"{desc.id}.json").write_text(json.dumps(event, indent=2, default=str))
         return event
+    # Write-Audit-Publish (Netflix/Iceberg WAP): write to staging, audit expectations, then publish atomically.
     gdir = lake.gold_dir(scenario, desc.id)
-    for name, df in outputs.items():
-        check_gold(name, df, out_specs[name])
+    stage = gdir / "_staging"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    audit = {"transform": desc.id, "scenario": scenario, "checks": []}
+    try:
+        for name, df in outputs.items():
+            if name not in out_specs:
+                raise ExpectationError(f"{desc.id}: undeclared output '{name}'")
+            check_gold(name, df, out_specs[name])
+            audit["checks"].append({"output": name, "rows": len(df), "passed": True})
+            write_table(df, stage / f"{name}.parquet")
+    except Exception as e:
+        audit["checks"].append({"passed": False, "error": str(e)})
+        (stage / "_audit.json").write_text(json.dumps(audit, indent=2))
+        raise
+    for name in outputs:
         p = gdir / f"{name}.parquet"
-        write_table(df, p)
+        os.replace(stage / f"{name}.parquet", p)
         lineage_out.append({"namespace": "lake.gold", "name": f"{desc.id}/{name}",
-                            "facets": {"scenario": scenario, "rows": len(df), "sha256": sha256_file(p)}})
+                            "facets": {"scenario": scenario, "rows": len(outputs[name]), "sha256": sha256_file(p)}})
+    (gdir / "_audit.json").write_text(json.dumps(audit, indent=2))
+    shutil.rmtree(stage)
     event = run_event(descriptor=desc.data, descriptor_dir=desc.dir, scenario=scenario, params=params,
                       inputs=lineage_in, outputs=lineage_out, started=started)
     (gdir / "_lineage.json").write_text(json.dumps(event, indent=2, default=str))

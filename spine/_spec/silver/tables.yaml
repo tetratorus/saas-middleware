@@ -85,3 +85,14 @@ tables:
       dni_wm2: {type: float, unit: W/m2}
       dhi_wm2: {type: float, unit: W/m2}
       source_version: {type: string, required: true}
+  id_bridge:
+    description: "GERS-style bridge (Overture Maps): maps every source system's own IDs onto spine hub IDs, so models from different repos join on one key."
+    key: [source, source_id]
+    columns:
+      source: {type: string, doc: "e.g. ura_mp2019, duct_bdp, twa_kg, osm, cea_zone"}
+      source_id: {type: string}
+      hub: {type: string, doc: "plot | building | district | road | station"}
+      hub_id: {type: string}
+      match_method: {type: string, doc: "exact | spatial_overlap | manual"}
+      confidence: {type: float, nullable: true}
+      source_version: {type: string}

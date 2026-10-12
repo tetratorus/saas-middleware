@@ -143,3 +143,35 @@ def test_serve_ogc_features(lake):
     fc = json.load(urllib.request.urlopen(base + "/collections/gold.example.plot_capacity.plot_capacity/items"))
     assert fc["numberReturned"] == 3 and fc["features"][0]["geometry"]["type"] == "Polygon"
     srv.shutdown()
+
+
+def test_write_audit_publish_blocks_bad_output(lake, tmp_path):
+    tdir = tmp_path / "bad"
+    tdir.mkdir()
+    (tdir / "adapter.py").write_text("import pandas as pd\ndef run(inputs, params):\n    return {'o': pd.DataFrame({'plot_id': ['P1', 'P1'], 'v': [1.0, 2.0]})}\n")
+    (tdir / "transform.yaml").write_text(
+        "id: example.bad\nversion: 0.1.0\nkind: transform\ntitle: bad\nupstream: {repo: x, license: MIT}\n"
+        "runtime: {type: python, entrypoint: 'adapter:run'}\ninputs: [{name: z, source: 'silver:zoning'}]\n"
+        "outputs: [{name: o, key: [plot_id]}]\n")
+    with pytest.raises(ExpectationError):
+        execute(lake, load_descriptor(tdir))
+    g = lake.gold_dir("baseline", "example.bad")
+    assert not (g / "o.parquet").exists() and json.loads((g / "_staging" / "_audit.json").read_text())["checks"][-1]["passed"] is False
+
+
+def test_id_bridge_silver_table(lake):
+    lake.silver_write("id_bridge", pd.DataFrame([{"source": "duct_bdp", "source_id": "b-17", "hub": "building",
+                                                  "hub_id": "B1", "match_method": "spatial_overlap", "confidence": 0.93,
+                                                  "source_version": "v1"}]))
+    assert lake.silver_read("id_bridge").hub_id[0] == "B1"
+
+
+def test_dagster_assets_materialize(lake):
+    from dagster import AssetSpec, materialize
+    from spine.dagster_defs import build_definitions
+    defs = build_definitions(lake.root, [str(TOY)])
+    keys = {k.to_user_string() for k in defs.resolve_all_asset_keys()}
+    assert "gold/example/plot_capacity/plot_capacity" in keys and "bronze/toy_plots" in keys
+    assets = [a for a in defs.assets if not isinstance(a, AssetSpec)]
+    res = materialize(assets, selection=["silver/plots", "silver/zoning", "gold/example/plot_capacity/plot_capacity"])
+    assert res.success
