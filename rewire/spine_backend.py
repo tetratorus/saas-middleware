@@ -17,6 +17,7 @@ convert Silver <-> their working-directory files.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import shlex
@@ -73,7 +74,9 @@ def run(transform_yaml: str | os.PathLike, wd: str | os.PathLike) -> int:
     params_path = wd / "parameters"
     params = t.resolve_params(desc, json.loads(params_path.read_text()) if params_path.exists() else {})
     print("trigger:progress:10", flush=True)
-    outputs = t.invoke(desc, inputs, params)
+    # wrapped models may print their own SaaS triggers (e.g. DUCT processors); keep RTI stdout to this processor's
+    with contextlib.redirect_stdout(sys.stderr):
+        outputs = t.invoke(desc, inputs, params)
     print("trigger:progress:90", flush=True)
     for name, df in outputs.items():
         write_table(df, wd / name)

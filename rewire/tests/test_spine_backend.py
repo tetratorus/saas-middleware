@@ -31,6 +31,7 @@ outputs:
       - {name: gfa_m2, type: float}
 """
 ADAPTER = """def run(inputs, params):
+    print("trigger:output:inner-model-object")
     df = inputs["plots"].copy()
     df["gfa_m2"] = df.area_m2 * params["ratio"]
     return {"plot_capacity": df[["plot_id", "gfa_m2"]]}
@@ -74,6 +75,7 @@ def test_exported_processor_runs_saas_wd_contract(transform, tmp_path):
     res = subprocess.run([sys.executable, "processor.py", str(wd)], cwd=proc, capture_output=True, text=True, check=False)
     assert res.returncode == 0, res.stderr
     assert "trigger:output:plot_capacity" in res.stdout and "trigger:progress:100" in res.stdout
+    assert "inner-model-object" not in res.stdout and "inner-model-object" in res.stderr
     out = pd.read_parquet(wd / "plot_capacity").sort_values("plot_id")
     assert out.gfa_m2.tolist() == [300.0, 150.0]
 
